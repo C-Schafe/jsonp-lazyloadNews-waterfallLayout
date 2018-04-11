@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>waterfall-news</title>
+	<meta charset="utf-8">
+</head>
+<style type="text/css">
+	* {
+	  margin: 0;
+	  padding: 0;
+	}
+	.news-ct {
+	  width: 1000px;
+	  margin: 0 auto;
+	  position: relative;
+	}
+	.item {
+	  width:280px;
+	  border: 1px #dfdfdf solid;
+	  text-align: left;
+	  padding: 15px;
+	  position: absolute;
+	  margin-top: 10px;
+	  margin-left: 10px;
+	}
+	.item img{
+	  width: 280px;
+	}
+	.item h4 {
+	  margin-top: 10px;
+	}
+	.item p {
+	  color: #777371;
+	  font-size: 12px;
+	  line-height: 1.8;
+	}
+	.item hr {
+	  margin-top: 5px;
+	  margin-bottom: 10px;
+	}
+	.invisible {
+		display: none;
+	}
+	#load {
+		visibility: hidden;
+		height: 10px;
+	}
+</style>
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.js"></script>
+<body>
+	<div class="news-ct">
+		<!-- <div class="item">
+			<a href="">
+            <img src="http://n.sinaimg.cn/tech/transform/200/w600h400/20180410/ZiEu-fyvtmxe8019958.jpg" alt="">
+            </a>
+          <h4>黑天鹅争抢塑料袋当食物</h4>
+          <hr>
+          <p>沈阳一公园水禽饲养区内，很多黑天鹅在水中嬉戏，成为园中的一道风景。 在池水中，两只黑天鹅的动作吸引了作者的视，只见这两只黑天鹅不停地牵扯着一只白色的塑料袋。</p>
+		</div> -->
+		<div class="item invisible">这是看不见的</div>
+	</div>
+	<div id="load"></div>
+
+	<script type="text/javascript">
+
+		var isLoaded = false
+		if(isVisible($('#load'))){
+				getData()
+		}
+		$(window).scroll(function(){
+			lazyLoad()
+		})
+		var pageIndex = 1
+		var newsNum = 10
+
+		function lazyLoad(){
+			if(isVisible($('#load'))){
+				getData()
+			}
+		}
+		function getData(){
+			if(!isLoaded){
+				isLoaded = true
+				$.ajax({
+				url:'http://platform.sina.com.cn/slide/album_tech',
+				dataType:'jsonp',
+				jsonp:'jsoncallback',
+				data: {
+					app_key: '1271687855',
+					page: pageIndex,
+					num: newsNum
+				}
+				}).done(function(ret){
+					if(ret && ret.status && ret.status.code === '0'){
+						console.log(ret)
+						var nodes = createNodes(ret)
+						var $nodes = $(nodes)
+						//console.log(nodes)
+						// console.log($nodes)
+						$nodes.find('img').on('load',function(){
+							console.log('img loaded')
+							$('.invisible').before($nodes)
+							waterfallPlace()
+						})
+						pageIndex++
+						isLoaded = false
+					}else{
+						console.log('get error data')
+					}
+					
+				})
+			}
+		}
+
+		function createNodes(nodes){
+			var html = ''
+			for(i = 0; i < nodes.data.length; i++){
+				html += `<div class="item">
+						  <a href=${nodes.data[i].url}><img src=${nodes.data[i].img_url}></a>
+				          <h4>${nodes.data[i].short_name}</h4>
+				          <hr>
+				          <p>${nodes.data[i].short_intro}</p>
+						</div>
+						`
+			}
+			return html
+		}	
+
+		function waterfallPlace(){
+			// console.log('placeNews')
+			var ctWidth = $('.news-ct').width()
+			var itemWidth = $('.item').outerWidth(true)
+			var colNum = parseInt(ctWidth/itemWidth)
+			var colHeights = []
+			var $items = $('.item')
+			//var $this = $(this)
+			for(i=0; i < colNum; i++){
+				colHeights[i] = 0
+			}
+			$.each($items, function(){
+				var minHeight = Math.min.apply(null,colHeights)
+				var minHeightIndex = colHeights.indexOf(minHeight)
+				$(this).css({'top': `${minHeight}px`, 'left': `${itemWidth*minHeightIndex}px`})
+				var maxHeight = Math.max.apply(null,colHeights)
+				$('.news-ct').css({'height':maxHeight})
+				colHeights[minHeightIndex] += $(this).outerHeight(true) 
+			})
+		}
+		function isVisible(node){
+	      var offset = node.offset().top;
+	      var scrollTop = $(window).scrollTop();
+	      var windowHeight = $(window).height()
+	      if(offset >= scrollTop && offset <= (windowHeight + scrollTop)){
+	          return true
+	      }else{
+	          return false
+	      }  
+	    }
+	</script>
+</body>
+</html>
